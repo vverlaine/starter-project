@@ -152,9 +152,6 @@ SetupEnvironment() {
 
     # Solicitar la ubicación del entorno inicial de manera visual
     starter_env=$(zenity --file-selection --directory --title="Selecciona la carpeta del entorno inicial")
-    echo "------------------------------------------------------------"
-    echo "$starter_env"
-    echo "------------------------------------------------------------"
 
     # Verificar si se seleccionó una ubicación
     if [ -z "$starter_env" ]; then
