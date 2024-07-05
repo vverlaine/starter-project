@@ -104,11 +104,8 @@ SetupEnvironment() {
     # Crear y activar el entorno virtual
     CreateVenv
 
-    # Crear un archivo requirements.txt si no existe y seleccionar dependencias
-    if [ ! -f requirements.txt ]; then
-        echo "Creando archivo requirements.txt por defecto..."
-        echo -e "numpy\npandas\nmatplotlib\nscikit-learn\nflake8" > requirements.txt
-    fi
+    # Crear un archivo requirements.txt temporal y seleccionar dependencias
+    cp requirements.txt temp_requirements.txt
 
     # Preguntar si se quiere instalar PySpark
     read -p "¿Deseas instalar PySpark? (s/n): " install_pyspark
@@ -122,19 +119,19 @@ SetupEnvironment() {
             echo "Apache Spark no está instalado. Instalándolo ahora..."
             brew install apache-spark
         fi
-        echo "pyspark" >> requirements.txt
+        echo "pyspark" >> temp_requirements.txt
     fi
 
     # Preguntar si se quiere instalar Jupyter Notebook
     read -p "¿Deseas instalar Jupyter Notebook? (s/n): " install_jupyter
 
     if [[ "$install_jupyter" == "s" ]]; then
-        echo "jupyter" >> requirements.txt
+        echo "jupyter" >> temp_requirements.txt
     fi
 
     # Seleccionar dependencias para instalar
     echo "Selecciona las dependencias a instalar:"
-    deps=($(cat requirements.txt))
+    deps=($(cat temp_requirements.txt))
     selected_deps=()
     for dep in "${deps[@]}"; do
         read -p "¿Deseas instalar $dep? (s/n): " choice
@@ -143,8 +140,8 @@ SetupEnvironment() {
         fi
     done
 
-    # Guardar las dependencias seleccionadas en requirements.txt
-    echo "${selected_deps[@]}" | tr ' ' '\n' > requirements.txt
+    # Guardar las dependencias seleccionadas en un nuevo requirements.txt
+    echo "${selected_deps[@]}" | tr ' ' '\n' > new_requirements.txt
 
     # Instalar dependencias seleccionadas
     if [ ${#selected_deps[@]} -ne 0 ]; then
@@ -168,6 +165,11 @@ SetupEnvironment() {
     # Copiar la estructura básica del proyecto desde la plantilla existente, asegurándose de copiar todos los archivos
     echo "Copiando estructura del proyecto..."
     rsync -av --progress --exclude 'setup.sh' --exclude 'README.md' . "$starter_env"
+
+    # Copiar el nuevo requirements.txt al proyecto de destino
+    cp new_requirements.txt "$starter_env/requirements.txt"
+    rm new_requirements.txt temp_requirements.txt
+
     echo "Configuración completada. El entorno está listo para usar."
 }
 
