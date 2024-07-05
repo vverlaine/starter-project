@@ -15,7 +15,7 @@ PrintLogo() {
     echo "|    ___||  _    ||       |       |_____  |  |   |  |       ||    __  |  |   |  "
     echo "|   |___ | | |   | |     |         _____| |  |   |  |   _   ||   |  | |  |   |  "
     echo "|_______||_|  |__|  |___|         |_______|  |___|  |__| |__||___|  |_|  |___|  "
-    echo                                                                                                                                                                                                  
+    echo
 }
 
 # Función para crear y activar un entorno virtual
@@ -72,24 +72,10 @@ CreateVenv() {
     source $HOME/.zshrc
 }
 
-# Función para cerrar sesión en GitHub
-LogoutGitHub() {
-    echo
-    echo "--> Cerrando sesión en GitHub"
-    echo
-    gh auth logout
-}
-
 # Función principal para configurar el entorno
 SetupEnvironment() {
     # Imprimir el logotipo
     PrintLogo
-
-    # Solicitar información del proyecto
-    read -p "Introduce el nombre del proyecto y repositorio: " project_name
-    repo_name=$project_name
-    read -p "Introduce el autor del proyecto: " author_name
-    read -p "Introduce una descripción del proyecto: " project_description
 
     # Verificar el sistema operativo y asegurarse de que las herramientas necesarias están instaladas
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -115,28 +101,27 @@ SetupEnvironment() {
         exit 1
     fi
 
-    # Cerrar sesión en GitHub si ya hay una sesión iniciada
-    if gh auth status &> /dev/null; then
-        read -p "Ya hay una sesión de GitHub iniciada. ¿Deseas cerrar sesión y entrar con otra cuenta? (s/n): " logout_choice
-        if [[ "$logout_choice" == "s" ]]; then
-            LogoutGitHub
-        fi
+    # Solicitar la ubicación del entorno inicial de manera visual
+    starter_env=$(zenity --file-selection --directory --title="Selecciona la carpeta del entorno inicial")
+    echo "------------------------------------------------------------"
+    echo "$starter_env"
+    echo "------------------------------------------------------------"
+
+    # Verificar si se seleccionó una ubicación
+    if [ -z "$starter_env" ]; then
+        echo "No se seleccionó una ubicación. Saliendo..."
+        exit 1
     fi
 
-    # Autenticarse en GitHub
-    echo
-    echo "--> Iniciando sesión en GitHub"
-    echo
-    gh auth login
+    # Copiar la estructura básica del proyecto desde la plantilla existente, asegurándose de copiar todos los archivos
+    echo "Copiando estructura del proyecto..."
+    rsync -av --progress --exclude 'setup.sh' --exclude 'README.md' . "$starter_env"
 
-    # Crear y activar el entorno virtual
-    CreateVenv
+    # Cambiar a la carpeta del proyecto de destino
+    cd "$starter_env"
 
-    # Crear un archivo requirements.txt si no existe y seleccionar dependencias
-    if [ ! -f requirements.txt ]; then
-        echo "Creando archivo requirements.txt por defecto..."
-        echo -e "numpy\npandas\nmatplotlib\nscikit-learn\nflake8" > requirements.txt
-    fi
+    # Crear un archivo requirements.txt temporal y seleccionar dependencias
+    cp requirements.txt temp_requirements.txt
 
     # Preguntar si se quiere instalar PySpark
     read -p "¿Deseas instalar PySpark? (s/n): " install_pyspark
@@ -150,19 +135,19 @@ SetupEnvironment() {
             echo "Apache Spark no está instalado. Instalándolo ahora..."
             brew install apache-spark
         fi
-        echo "pyspark" >> requirements.txt
+        echo "pyspark" >> temp_requirements.txt
     fi
 
     # Preguntar si se quiere instalar Jupyter Notebook
     read -p "¿Deseas instalar Jupyter Notebook? (s/n): " install_jupyter
 
     if [[ "$install_jupyter" == "s" ]]; then
-        echo "jupyter" >> requirements.txt
+        echo "jupyter" >> temp_requirements.txt
     fi
 
     # Seleccionar dependencias para instalar
     echo "Selecciona las dependencias a instalar:"
-    deps=($(cat requirements.txt))
+    deps=($(cat temp_requirements.txt))
     selected_deps=()
     for dep in "${deps[@]}"; do
         read -p "¿Deseas instalar $dep? (s/n): " choice
@@ -171,7 +156,7 @@ SetupEnvironment() {
         fi
     done
 
-    # Guardar las dependencias seleccionadas en requirements.txt
+    # Guardar las dependencias seleccionadas en un nuevo requirements.txt
     echo "${selected_deps[@]}" | tr ' ' '\n' > requirements.txt
 
     # Instalar dependencias seleccionadas
@@ -181,73 +166,10 @@ SetupEnvironment() {
         echo "No se seleccionaron dependencias para instalar."
     fi
 
-    # Solicitar la ubicación del nuevo proyecto de manera visual
-    project_location=$(zenity --file-selection --directory --title="Selecciona la ubicación del nuevo proyecto")
+    # Eliminar archivos temporales
+    rm temp_requirements.txt
 
-    # Verificar si se seleccionó una ubicación
-    if [ -z "$project_location" ]; then
-        echo "No se seleccionó una ubicación. Saliendo..."
-        exit 1
-    fi
-
-    # Crear una carpeta con el nombre del proyecto
-    project_path="$project_location/$project_name"
-    mkdir -p "$project_path"
-
-    # Copiar la estructura básica del proyecto desde la plantilla existente
-    echo "Copiando estructura del proyecto..."
-    rsync -av --progress --exclude 'setup.sh' --exclude 'requirements.txt' . "$project_path"
-
-    # Crear un archivo README.md con la información del proyecto
-    echo "# $project_name
-
-## Autor
-
-$author_name
-
-## Descripción
-
-$project_description" > "$project_path/README.md"
-
-    # Configurar usuario y correo electrónico específicos del proyecto
-    cd "$project_path"
-    read -p "Introduce el nombre de usuario de Git para este proyecto: " git_user_name
-    read -p "Introduce el correo electrónico de Git para este proyecto: " git_user_email
-    git config user.name "$git_user_name"
-    git config user.email "$git_user_email"
-
-    # Inicializar el repositorio Git y hacer el primer commit
-    git init
-    git add .
-    git commit -m "Initial commit"
-    git remote add origin https://github.com/$author_name/$repo_name.git
-    git push -u origin main
-
-    echo "El entorno está configurado y el repositorio ha sido inicializado correctamente en $project_path."
-
-    # Crear script para cambiar entre cuentas de GitHub
-    echo "#!/bin/bash
-
-# Script para cambiar entre cuentas de GitHub
-if [ "\$1" == "personal" ]; then
-    git config user.name "$git_user_name"
-    git config user.email "$git_user_email"
-    echo "Configurado para la cuenta personal"
-elif [ "\$1" == "work" ]; then
-    git config user.name "Tu Nombre de
-
-
-Trabajo"
-    git config user.email "tuemail@trabajo.com"
-    echo "Configurado para la cuenta de trabajo"
-else
-    echo "Uso: ./change_git_account.sh [personal|work]"
-fi" > "$project_path/change_git_account.sh"
-    
-    chmod +x "$project_path/change_git_account.sh"
-    echo "change_git_account.sh" >> "$project_path/.gitignore"
-
-    echo "Script para cambiar entre cuentas de GitHub creado y añadido al .gitignore."
+    echo "Configuración completada. El entorno está listo para usar."
 }
 
 # Ejecutar la configuración del entorno
