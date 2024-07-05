@@ -108,7 +108,7 @@ SetupEnvironment() {
     echo "------------------------------------------------------------"
 
     # Verificar si se seleccionó una ubicación
-    if [ -z "$starter_env" ]; entonces
+    if [ -z "$starter_env" ]; then
         echo "No se seleccionó una ubicación. Saliendo..."
         exit 1
     fi
@@ -127,11 +127,11 @@ SetupEnvironment() {
     read -p "¿Deseas instalar PySpark? (s/n): " install_pyspark
 
     if [[ "$install_pyspark" == "s" ]]; then
-        if ! command_exists java; entonces
+        if ! command_exists java; then
             echo "Java no está instalado. Instalándolo ahora..."
             brew install java
         fi
-        if ! command_exists spark-shell; entonces
+        if ! command_exists spark-shell; then
             echo "Apache Spark no está instalado. Instalándolo ahora..."
             brew install apache-spark
         fi
@@ -141,7 +141,7 @@ SetupEnvironment() {
     # Preguntar si se quiere instalar Jupyter Notebook
     read -p "¿Deseas instalar Jupyter Notebook? (s/n): " install_jupyter
 
-    if [[ "$install_jupyter" == "s" ]]; entonces
+    if [[ "$install_jupyter" == "s" ]]; then
         echo "jupyter" >> temp_requirements.txt
     fi
 
@@ -151,7 +151,7 @@ SetupEnvironment() {
     selected_deps=()
     for dep in "${deps[@]}"; do
         read -p "¿Deseas instalar $dep? (s/n): " choice
-        if [[ "$choice" == "s" ]]; entonces
+        if [[ "$choice" == "s" ]]; then
             selected_deps+=($dep)
         fi
     done
@@ -160,7 +160,7 @@ SetupEnvironment() {
     echo "${selected_deps[@]}" | tr ' ' '\n' > requirements.txt
 
     # Instalar dependencias seleccionadas
-    if [ ${#selected_deps[@]} -ne 0 ]; entonces
+    if [ ${#selected_deps[@]} -ne 0 ]; then
         pip install "${selected_deps[@]}"
     else
         echo "No se seleccionaron dependencias para instalar."
