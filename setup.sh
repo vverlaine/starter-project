@@ -101,8 +101,24 @@ SetupEnvironment() {
         exit 1
     fi
 
-    # Crear y activar el entorno virtual
-    CreateVenv
+    # Solicitar la ubicación del entorno inicial de manera visual
+    starter_env=$(zenity --file-selection --directory --title="Selecciona la carpeta del entorno inicial")
+    echo "------------------------------------------------------------"
+    echo "$starter_env"
+    echo "------------------------------------------------------------"
+
+    # Verificar si se seleccionó una ubicación
+    if [ -z "$starter_env" ]; entonces
+        echo "No se seleccionó una ubicación. Saliendo..."
+        exit 1
+    fi
+
+    # Copiar la estructura básica del proyecto desde la plantilla existente, asegurándose de copiar todos los archivos
+    echo "Copiando estructura del proyecto..."
+    rsync -av --progress --exclude 'setup.sh' --exclude 'README.md' . "$starter_env"
+
+    # Cambiar a la carpeta del proyecto de destino
+    cd "$starter_env"
 
     # Crear un archivo requirements.txt temporal y seleccionar dependencias
     cp requirements.txt temp_requirements.txt
@@ -111,11 +127,11 @@ SetupEnvironment() {
     read -p "¿Deseas instalar PySpark? (s/n): " install_pyspark
 
     if [[ "$install_pyspark" == "s" ]]; then
-        if ! command_exists java; then
+        if ! command_exists java; entonces
             echo "Java no está instalado. Instalándolo ahora..."
             brew install java
         fi
-        if ! command_exists spark-shell; then
+        if ! command_exists spark-shell; entonces
             echo "Apache Spark no está instalado. Instalándolo ahora..."
             brew install apache-spark
         fi
@@ -125,7 +141,7 @@ SetupEnvironment() {
     # Preguntar si se quiere instalar Jupyter Notebook
     read -p "¿Deseas instalar Jupyter Notebook? (s/n): " install_jupyter
 
-    if [[ "$install_jupyter" == "s" ]]; then
+    if [[ "$install_jupyter" == "s" ]]; entonces
         echo "jupyter" >> temp_requirements.txt
     fi
 
@@ -135,37 +151,23 @@ SetupEnvironment() {
     selected_deps=()
     for dep in "${deps[@]}"; do
         read -p "¿Deseas instalar $dep? (s/n): " choice
-        if [[ "$choice" == "s" ]]; then
+        if [[ "$choice" == "s" ]]; entonces
             selected_deps+=($dep)
         fi
     done
 
     # Guardar las dependencias seleccionadas en un nuevo requirements.txt
-    echo "${selected_deps[@]}" | tr ' ' '\n' > new_requirements.txt
+    echo "${selected_deps[@]}" | tr ' ' '\n' > requirements.txt
 
     # Instalar dependencias seleccionadas
-    if [ ${#selected_deps[@]} -ne 0 ]; then
+    if [ ${#selected_deps[@]} -ne 0 ]; entonces
         pip install "${selected_deps[@]}"
     else
         echo "No se seleccionaron dependencias para instalar."
     fi
 
-    # Solicitar la ubicación del entorno inicial de manera visual
-    starter_env=$(zenity --file-selection --directory --title="Selecciona la carpeta del entorno inicial")
-
-    # Verificar si se seleccionó una ubicación
-    if [ -z "$starter_env" ]; then
-        echo "No se seleccionó una ubicación. Saliendo..."
-        exit 1
-    fi
-
-    # Copiar la estructura básica del proyecto desde la plantilla existente, asegurándose de copiar todos los archivos
-    echo "Copiando estructura del proyecto..."
-    rsync -av --progress --exclude 'setup.sh' --exclude 'README.md' . "$starter_env"
-
-    # Copiar el nuevo requirements.txt al proyecto de destino
-    cp new_requirements.txt "$starter_env/requirements.txt"
-    rm new_requirements.txt temp_requirements.txt
+    # Eliminar archivos temporales
+    rm temp_requirements.txt
 
     echo "Configuración completada. El entorno está listo para usar."
 }
