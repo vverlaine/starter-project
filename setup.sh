@@ -155,6 +155,9 @@ SetupEnvironment() {
 
     # Solicitar la ubicación del entorno inicial de manera visual
     starter_env=$(zenity --file-selection --directory --title="Selecciona la carpeta del entorno inicial")
+    echo "------------------------------------------------------------"
+    echo "$starter_env"
+    echo "------------------------------------------------------------"
 
     # Verificar si se seleccionó una ubicación
     if [ -z "$starter_env" ]; then
@@ -162,7 +165,7 @@ SetupEnvironment() {
         exit 1
     fi
 
-    # Copiar la estructura básica del proyecto desde la plantilla existente
+    # Copiar la estructura básica del proyecto desde la plantilla existente, asegurándose de copiar todos los archivos
     echo "Copiando estructura del proyecto..."
     rsync -av --progress --exclude 'setup.sh' --exclude 'README.md' . "$starter_env"
     echo "Configuración completada. El entorno está listo para usar."
