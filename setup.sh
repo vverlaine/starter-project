@@ -118,7 +118,7 @@ SetupEnvironment() {
 
     # Copiar la estructura básica del proyecto desde la plantilla existente, asegurándose de copiar todos los archivos
     echo "Copiando estructura del proyecto..."
-    rsync -av --progress --exclude 'setup.sh' --exclude 'README.md' . "$starter_env"
+    rsync -av --progress --exclude '.git' --exclude 'setup.sh' --exclude 'README.md' . "$starter_env"
 
     # Cambiar a la carpeta del proyecto de destino
     cd "$starter_env"
