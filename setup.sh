@@ -101,6 +101,9 @@ SetupEnvironment() {
         exit 1
     fi
 
+    # Crear y activar el entorno virtual
+    CreateVenv
+
     # Solicitar la ubicación del entorno inicial de manera visual
     starter_env=$(zenity --file-selection --directory --title="Selecciona la carpeta del entorno inicial")
     echo "------------------------------------------------------------"
